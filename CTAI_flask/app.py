@@ -9,7 +9,7 @@ from flask import *
 import core.main
 
 UPLOAD_FOLDER = r'./uploads'
-
+ 
 ALLOWED_EXTENSIONS = set(['png'])
 app = Flask(__name__)
 app.secret_key = 'secret!'

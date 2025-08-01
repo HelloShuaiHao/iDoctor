@@ -3,7 +3,7 @@
     <!-- VUE弹窗 -->
     <el-dialog
       id="hello"
-      title="眼疾辅助诊断系统使用须知"
+      title="肌小证诊断系统使用须知"
       :visible.sync="centerDialogVisible"
       width="65%"
       :before-close="handleClose"
@@ -11,22 +11,22 @@
       <el-steps :active="5" finish-status="process ">
         <el-step title="步骤1" style="width: 280px; padding-left: 50px">
           <template slot="description">
-            <p style="font-size: 16px">下载测试CT文件文件</p>
+            <p style="font-size: 16px">下载测试肌小证影像文件</p>
             <br />
             <br />
           </template>
         </el-step>
         <el-step title="步骤2" style="width: 260px; margin-left: -5px">
           <template slot="description">
-            <p>上传CT图像至服务器</p>
-            <p>使用训练的模型预测眼疾区域</p>
-            <p>并返回眼疾区域特征</p>
+            <p>上传肌小证影像至服务器</p>
+            <p>使用训练的模型预测肌小证区域</p>
+            <p>并返回肌小证区域特征</p>
           </template>
         </el-step>
         <el-step title="步骤3" style="width: 260px; margin-left: -5px">
           <template slot="description">
             <div>
-              <p>根据预测的眼疾区域和特征</p>
+              <p>根据预测的肌小证区域和特征</p>
               <p>进行辅助诊断</p>
               <br />
             </div>
@@ -77,8 +77,8 @@
             finish-status="success"
           >
             <el-step style="height: 120px" title="步骤 1">
-              <template slot="description" style="font-size: 10px !important">
-                下载测试CT文件
+              <template slot="description">
+                <span style="font-size: 10px !important"> 下载测试CT文件 </span>
                 <!-- 下载文件 -->
                 <el-button
                   type="primary"
@@ -92,7 +92,8 @@
             <el-step style="height: 150px" title="步骤 2">
               <template slot="description">
                 <!-- 上传文件 -->
-                上传CT图像至服务器，使用训练的模型预测眼疾区域并返回眼疾区域特征
+                上传CT图像至服务器，使用训练的模型预测肌小证区域并返回肌小证区域特征
+                <br />
                 <el-button
                   type="primary"
                   icon="el-icon-upload"
@@ -162,7 +163,9 @@
             </div>
             <!-- 原CT图文字 -->
             <div class="img_info_1" style="border-radius: 0 0 5px 5px">
-              <span style="color: white; letter-spacing: 6px">原CT图像</span>
+              <span style="color: white; letter-spacing: 6px"
+                >原始肌小证影像</span
+              >
             </div>
           </div>
           <!-- 标出眼疾的CT图像 -->
@@ -183,10 +186,9 @@
                 </div>
               </el-image>
             </div>
-            <!-- 标出眼疾的CT图像文字 -->
             <div class="img_info_1" style="border-radius: 0 0 5px 5px">
               <span style="color: white; letter-spacing: 4px"
-                >标出眼疾的CT图像</span
+                >计算后的CT图像</span
               >
             </div>
           </div>
@@ -196,7 +198,7 @@
         <!-- 卡片放置表格 -->
         <el-card style="border-radius: 8px">
           <div slot="header" class="clearfix">
-            <span>眼疾区域特征值</span>
+            <span>肌小证区域特征值</span>
             <el-button
               style="margin-left: 35px"
               v-show="!showbutton"
@@ -216,7 +218,7 @@
             </el-button>
           </div>
           <el-tabs v-model="activeName" @tab-click="handleClick">
-            <el-tab-pane label="眼疾区域特征值" name="first">
+            <el-tab-pane label="肌小证区域特征值" name="first">
               <!-- 表格存放特征值 -->
               <el-table
                 :data="feature_list"
@@ -378,12 +380,11 @@ export default {
         性别: "女",
         年龄: "22",
         电话: "13120392966",
-        部位: "左眼",
       },
     };
   },
   created: function () {
-    document.title = "眼疾辅助诊断系统";
+    document.title = "肌小证诊断系统";
   },
   methods: {
     true_upload() {
@@ -630,8 +631,7 @@ export default {
     downTemplate() {
       axios({
         method: "get",
-        url:
-          "https://cso1-1254043908.cos.ap-beijing.myqcloud.com/ct/testfile.7z",
+        url: "https://cso1-1254043908.cos.ap-beijing.myqcloud.com/ct/testfile.7z",
         responseType: "blob",
       }).then((res) => {
         this.downloads(res.data, res.headers.filename);
@@ -670,8 +670,8 @@ export default {
       // 指定图表的配置项和数据
       myChart_area.setOption({
         title: {
-          text: "眼疾面积变化",
-          subtext: "Tumor Area Change",
+          text: "肌小证面积变化",
+          subtext: "Myopathy Area Change",
           left: "center",
         },
         legend: {
@@ -713,7 +713,7 @@ export default {
         },
         yAxis: {
           type: "value",
-          name: "眼疾面积",
+          name: "面积",
           nameTextStyle: {
             padding: 4,
             fontSize: 14,
@@ -730,8 +730,8 @@ export default {
       });
       myChart_perimeter.setOption({
         title: {
-          text: "眼疾周长变化",
-          subtext: "Tumor Circumference Change",
+          text: "周长变化",
+          subtext: "Circumference Change",
           left: "center",
         },
         legend: {
@@ -773,7 +773,7 @@ export default {
         },
         yAxis: {
           type: "value",
-          name: "眼疾周长",
+          name: "周长",
           nameTextStyle: {
             padding: 4,
             fontSize: 14,
@@ -798,7 +798,7 @@ export default {
       let link = document.createElement("a");
       link.style.display = "none";
       link.href = url;
-      link.setAttribute("download", `眼疾CT图文件.zip`);
+      link.setAttribute("download", `肌小证影像文件.zip`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -807,8 +807,7 @@ export default {
     welcome() {
       axios({
         method: "get",
-        url:
-          "https://cso1-1254043908.cos.ap-beijing.myqcloud.com/ct/testfile.7z",
+        url: "https://cso1-1254043908.cos.ap-beijing.myqcloud.com/ct/testfile.7z",
         responseType: "blob",
       }).then((res) => {
         this.downloads(res.data, res.headers.filename);
@@ -830,9 +829,9 @@ export default {
     },
     notice1() {
       this.$notify({
-        title: "预测成功",
+        title: "成功",
         message:
-          "点击图片可以查看大图，图片下方会显示眼疾区域的一些特征值来供医生参考，辅助诊断",
+          "点击图片可以查看大图，图片下方会显示肌小证区域的一些特征值来供医生参考，辅助诊断",
         duration: 0,
         type: "success",
       });
@@ -845,8 +844,26 @@ export default {
 </script>
 
 <style>
-.el-button {
+/* .el-button {
   padding: 12px 20px !important;
+} */
+
+.el-button,
+.download_bt {
+  border-radius: 24px !important;
+  font-size: 1.1em;
+  font-weight: 500;
+  padding: 12px 32px !important;
+  background: linear-gradient(90deg, #21b3b9 0%, #4fd1c5 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(33, 179, 185, 0.08);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.el-button:hover,
+.download_bt:hover {
+  background: linear-gradient(90deg, #4fd1c5 0%, #21b3b9 100%);
+  box-shadow: 0 4px 16px rgba(33, 179, 185, 0.16);
 }
 
 #hello p {
@@ -1056,24 +1073,22 @@ div {
 }
 
 #Content {
-  width: 85%;
-  height: 800px;
-  background-color: #ffffff;
-  margin: 15px auto;
-  display: flex;
+  width: 90%;
   min-width: 1200px;
-  /* border: 1px solid #e4e7ed; */
-  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04); */
+  margin: 40px auto;
+  display: flex;
+  gap: 48px;
+  background: none;
+  box-shadow: none;
 }
-
 #aside {
-  width: 25%;
-  background-color: #ffffff;
-  padding: 30px;
-  margin-right: 80px;
-  /* background-color: RGB(239, 249, 251); */
-  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04); */
-  height: 800px;
+  width: 300px;
+  background: #f8fafc;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(33, 179, 185, 0.06);
+  padding: 32px 24px;
+  margin-right: 0;
+  height: fit-content;
 }
 
 .divider {
