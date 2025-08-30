@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const BASE_URL = "http://192.166.101.3:4200"
+const BASE_URL = "http://ai.bygpu.com:55303"
 
 // 上传 DICOM ZIP 文件
 export async function uploadDicomZip({ patient_name, study_date, file }) {
