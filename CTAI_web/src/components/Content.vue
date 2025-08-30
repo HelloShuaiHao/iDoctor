@@ -7,7 +7,7 @@
         :active="currentStep"
         finish-status="success"
       >
-        <el-step title="步骤 1 上传图像">
+        <el-step title="步骤 1 上传 DICOM ZIP">
           <template #description>
             <el-button
               type="primary"
@@ -19,25 +19,23 @@
             <input
               ref="fileInput"
               type="file"
-              multiple
+              accept=".zip"
               style="display: none"
-              @change="handleUpload"
+              @change="handleFile"
             />
-            <p v-if="uploadedFiles.length" class="hint">
-              已选 {{ uploadedFiles.length }} 个
-            </p>
+            <p v-if="fileName" class="hint">已选：{{ fileName }}</p>
           </template>
         </el-step>
-        <el-step title="步骤 2 选择L3切片" :disabled="currentStep < 2">
+        <el-step title="步骤 2 处理数据" :disabled="currentStep < 2">
           <template #description>
             <p v-if="currentStep === 1" class="muted">等待上传完成</p>
-            <p v-else>候选 {{ l3Candidates.length }} 张</p>
+            <p v-else>点击“开始处理”调用后端推理</p>
           </template>
         </el-step>
-        <el-step title="步骤 3 面积计算" :disabled="currentStep < 3">
+        <el-step title="步骤 3 查看结果" :disabled="currentStep < 3">
           <template #description>
-            <p v-if="currentStep < 3" class="muted">等待选择</p>
-            <p v-else>计算完成后显示结果</p>
+            <p v-if="currentStep < 3" class="muted">等待处理完成</p>
+            <p v-else>进入结果详情或结果列表</p>
           </template>
         </el-step>
       </el-steps>
@@ -45,311 +43,181 @@
 
     <!-- 右侧主区 -->
     <section class="flow-main">
-      <!-- Step 1 -->
+      <!-- Step 1: 上传 -->
       <div v-if="currentStep === 1" class="panel">
-        <div class="upload-box" @click="triggerUpload">
-          <i class="el-icon-upload"></i>
-          <h3>上传CT扫描图像</h3>
-          <p>支持多文件 (DICOM / PNG)</p>
-          <el-button type="primary" :loading="uploading">选择或拖拽</el-button>
-        </div>
-      </div>
-
-      <!-- Step 2 -->
-      <div v-else-if="currentStep === 2" class="panel">
-        <div class="panel-header">
-          <h3>L3候选切片 ({{ l3Candidates.length }})</h3>
-          <div>
-            <el-button size="mini" @click="backToUpload"
-              >返回重新上传</el-button
+        <h3>上传 CT 扫描压缩包（ZIP）</h3>
+        <el-form label-width="100px" :model="form">
+          <el-form-item label="病人姓名">
+            <el-input
+              v-model="form.patient_name"
+              placeholder="例如：张三"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="检查日期">
+            <el-input
+              v-model="form.study_date"
+              placeholder="例如：20230831"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="ZIP 文件">
+            <el-button @click="triggerUpload" :loading="uploading"
+              >选择文件</el-button
             >
+            <span v-if="fileName" style="margin-left: 8px">{{ fileName }}</span>
+          </el-form-item>
+          <el-form-item>
             <el-button
               type="primary"
-              size="mini"
-              :disabled="selectedIdx === -1"
-              @click="goCalc"
-              >确认并计算</el-button
+              :disabled="!canUpload"
+              :loading="uploading"
+              @click="uploadZip"
             >
-          </div>
-        </div>
-        <el-empty v-if="loadingL3" description="识别中..." />
-        <div v-else class="grid">
-          <div
-            v-for="(img, i) in l3Candidates"
-            :key="img.id || i"
-            class="grid-item"
-            :class="{ active: selectedIdx === i }"
-            @click="selectCandidate(i)"
-          >
-            <el-image :src="img.url" fit="cover" lazy></el-image>
-            <div class="meta">
-              <span>切片 {{ i + 1 }}</span>
-              <span class="conf">置信度 {{ img.confidence || "--" }}%</span>
-            </div>
-          </div>
-        </div>
+              上传
+            </el-button>
+            <el-button type="text" @click="goResultList"
+              >查看已有结果</el-button
+            >
+          </el-form-item>
+        </el-form>
       </div>
 
-      <!-- Step 3 -->
+      <!-- Step 2: 处理 -->
+      <div v-else-if="currentStep === 2" class="panel">
+        <div class="panel-header">
+          <h3>处理数据</h3>
+        </div>
+        <el-alert
+          title="将调用后端 /process 接口，对刚上传的数据进行处理"
+          type="info"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+        <el-button type="primary" :loading="processing" @click="processData">
+          开始处理
+        </el-button>
+        <el-button type="text" style="margin-left: 8px" @click="backToUpload">
+          返回上一步
+        </el-button>
+      </div>
+
+      <!-- Step 3: 查看结果 -->
       <div v-else-if="currentStep === 3" class="panel">
         <div class="panel-header">
-          <h3>面积计算结果</h3>
-          <div>
-            <el-button size="mini" @click="backToSelect">返回选择</el-button>
-          </div>
+          <h3>处理完成</h3>
         </div>
-        <div class="result-layout" v-loading="calculating">
-          <div class="result-images">
-            <h4>原始切片</h4>
-            <el-image
-              :src="selectedImage.originalUrl"
-              fit="contain"
-              class="result-img"
-            />
-            <h4>分割结果</h4>
-            <el-image
-              :src="selectedImage.segmentedUrl"
-              fit="contain"
-              class="result-img"
-            />
-          </div>
-          <div class="result-metrics">
-            <h4>指标</h4>
-            <el-table
-              :data="areaMetrics"
-              size="small"
-              stripe
-              style="width: 100%"
+        <el-result icon="success" title="已完成处理">
+          <template #extra>
+            <el-button type="primary" @click="goResultDetail"
+              >查看本次结果</el-button
             >
-              <el-table-column prop="metric" label="名称" width="160" />
-              <el-table-column prop="value" label="数值" />
-              <el-table-column prop="unit" label="单位" width="80" />
-            </el-table>
-            <div class="diagnosis" v-if="diagnosis.title">
-              <el-alert
-                :title="diagnosis.title"
-                :type="diagnosis.type"
-                :description="diagnosis.description"
-                show-icon
-              />
-            </div>
-          </div>
-        </div>
+            <el-button @click="goResultList" style="margin-left: 8px"
+              >查看所有结果</el-button
+            >
+            <el-button
+              type="text"
+              style="margin-left: 8px"
+              @click="backToProcess"
+              >返回上一步</el-button
+            >
+          </template>
+        </el-result>
       </div>
 
-      <!-- 兜底 -->
       <el-empty v-else description="无内容" />
     </section>
   </div>
 </template>
 
-// <script>
-// import axios from "axios";
-// export default {
-//   name: "Content",
-//   data() {
-//     return {
-//       server_url: "http://127.0.0.1:5003",
-//       currentStep: 1,
-//       uploading: false,
-//       uploadedFiles: [],
-//       l3Candidates: [],
-//       loadingL3: false,
-//       selectedIdx: -1,
-//       calculating: false,
-//       selectedImage: {},
-//       areaMetrics: [],
-//       diagnosis: {},
-//     };
-//   },
-//   methods: {
-//     triggerUpload() {
-//       this.$refs.fileInput.click();
-//     },
-//     async handleUpload(e) {
-//       const files = Array.from(e.target.files || []);
-//       if (!files.length) return;
-//       this.uploading = true;
-//       try {
-//         const formData = new FormData();
-//         files.forEach((f) => formData.append("files", f));
-//         const res = await axios.post(
-//           this.server_url + "/upload-batch",
-//           formData
-//         );
-//         this.uploadedFiles = res.data.files || [];
-//         this.currentStep = 2;
-//         this.fetchL3();
-//       } catch (err) {
-//         this.$message.error("上传失败");
-//       } finally {
-//         this.uploading = false;
-//       }
-//     },
-//     async fetchL3() {
-//       this.loadingL3 = true;
-//       this.l3Candidates = [];
-//       this.selectedIdx = -1;
-//       try {
-//         const ids = this.uploadedFiles.map((f) => f.id);
-//         const res = await axios.post(this.server_url + "/identify-l3", {
-//           fileIds: ids,
-//         });
-//         this.l3Candidates = res.data.l3_slices || [];
-//         this.$message.success("L3识别完成");
-//       } catch (e) {
-//         this.$message.error("L3识别失败");
-//       } finally {
-//         this.loadingL3 = false;
-//       }
-//     },
-//     selectCandidate(i) {
-//       this.selectedIdx = i;
-//     },
-//     backToUpload() {
-//       this.currentStep = 1;
-//       this.uploadedFiles = [];
-//       this.l3Candidates = [];
-//       this.selectedIdx = -1;
-//     },
-//     backToSelect() {
-//       this.currentStep = 2;
-//       this.areaMetrics = [];
-//       this.diagnosis = {};
-//     },
-//     async goCalc() {
-//       if (this.selectedIdx === -1) return;
-//       this.currentStep = 3;
-//       this.calculating = true;
-//       try {
-//         const sel = this.l3Candidates[this.selectedIdx];
-//         const res = await axios.post(this.server_url + "/calculate-area", {
-//           imageId: sel.id,
-//         });
-//         this.selectedImage = {
-//           originalUrl: sel.url,
-//           segmentedUrl: res.data.segmented_image_url,
-//         };
-//         this.areaMetrics = res.data.metrics || [];
-//         this.diagnosis = res.data.diagnosis || {};
-//         this.$message.success("计算完成");
-//       } catch (e) {
-//         this.$message.error("计算失败");
-//       } finally {
-//         this.calculating = false;
-//       }
-//     },
-//   },
-// };
-//
-</script>
-
-// ...existing code...
 <script>
-// import axios from "axios"; // 仍为演示模式
+import { uploadDicomZip, processCase } from "@/api";
+
+function todayYMD() {
+  const d = new Date();
+  const pad = (n) => (n < 10 ? "0" + n : "" + n);
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+}
+
 export default {
   name: "Content",
   data() {
     return {
       currentStep: 1,
       uploading: false,
-      uploadedFiles: [],
-      l3Candidates: [],
-      loadingL3: false,
-      selectedIdx: -1,
-      calculating: false,
-      selectedImage: {},
-      areaMetrics: [],
-      diagnosis: {},
+      processing: false,
+      fileObj: null,
+      fileName: "",
+      form: {
+        patient_name: "",
+        study_date: todayYMD(),
+      },
     };
+  },
+  computed: {
+    canUpload() {
+      return !!(this.form.patient_name && this.form.study_date && this.fileObj);
+    },
   },
   methods: {
     triggerUpload() {
       this.$refs.fileInput && this.$refs.fileInput.click();
     },
-    // 演示上传
-    handleUpload(e) {
-      const files = Array.from(e.target.files || []);
-      if (!files.length) return;
-      this.uploading = true;
-      setTimeout(() => {
-        this.uploadedFiles = files.map((f, i) => ({
-          id: "fake_" + i,
-          name: f.name,
-        }));
-        this.currentStep = 2;
-        this.uploading = false;
-        this.clearFileInput(); // 关键：清空，确保后面还能重新选同一文件
-        this.fetchL3();
-      }, 400);
+    handleFile(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      this.fileObj = f;
+      this.fileName = f.name;
+      // 允许重复选择同一文件
+      this.$nextTick(() => (this.$refs.fileInput.value = ""));
     },
-    clearFileInput() {
-      if (this.$refs.fileInput) {
-        this.$refs.fileInput.value = "";
+    async uploadZip() {
+      if (!this.canUpload) return;
+      this.uploading = true;
+      try {
+        await uploadDicomZip({
+          patient_name: this.form.patient_name,
+          study_date: this.form.study_date,
+          file: this.fileObj,
+        });
+        this.$message.success("上传成功");
+        this.currentStep = 2;
+      } catch (e) {
+        console.error(e);
+        this.$message.error("上传失败");
+      } finally {
+        this.uploading = false;
       }
     },
-    fetchL3() {
-      this.loadingL3 = true;
-      this.l3Candidates = [];
-      this.selectedIdx = -1;
-      setTimeout(() => {
-        const placeholder =
-          "https://via.placeholder.com/240x160.png?text=L3+Slice";
-        this.l3Candidates = Array.from({ length: 6 }).map((_, i) => ({
-          id: "l3_" + i,
-          url: placeholder + "+" + (i + 1),
-          confidence: (90 - i * 3).toFixed(1),
-        }));
-        this.loadingL3 = false;
-      }, 600);
+    async processData() {
+      this.processing = true;
+      try {
+        await processCase(this.form.patient_name, this.form.study_date);
+        this.$message.success("处理完成");
+        this.currentStep = 3;
+      } catch (e) {
+        console.error(e);
+        this.$message.error("处理失败");
+      } finally {
+        this.processing = false;
+      }
     },
-    selectCandidate(i) {
-      this.selectedIdx = i;
+    goResultDetail() {
+      // 路由到结果详情页，注意中文参数在结果页里会再做编码调用 API
+      this.$router.push(
+        `/results/${this.form.patient_name}/${this.form.study_date}`
+      );
+    },
+    goResultList() {
+      this.$router.push("/results");
     },
     backToUpload() {
       this.currentStep = 1;
-      this.uploadedFiles = [];
-      this.l3Candidates = [];
-      this.selectedIdx = -1;
-      this.areaMetrics = [];
-      this.diagnosis = {};
-      this.selectedImage = {};
-      this.clearFileInput(); // 返回时也清空
-    },
-    backToSelect() {
-      this.currentStep = 2;
-      this.areaMetrics = [];
-      this.diagnosis = {};
-    },
-    goCalc() {
-      if (this.selectedIdx === -1) return;
-      this.currentStep = 3;
-      this.calculating = true;
-      setTimeout(() => {
-        const sel = this.l3Candidates[this.selectedIdx];
-        this.selectedImage = {
-          originalUrl: sel.url,
-          segmentedUrl:
-            "https://via.placeholder.com/240x160.png?text=Segmented",
-        };
-        this.areaMetrics = [
-          { metric: "CSA", value: "132.4", unit: "cm²" },
-          { metric: "SMA", value: "118.7", unit: "cm²" },
-          { metric: "脂肪渗透率", value: "12.5", unit: "%" },
-          { metric: "密度(HU)", value: "48.3", unit: "HU" },
-        ];
-        this.diagnosis = {
-          title: "评估结果：正常范围",
-          type: "success",
-          description: "横截面积与密度处于参考区间，无明显异常。",
-        };
-        this.calculating = false;
-      }, 800);
     },
   },
 };
 </script>
-// ...existing code...
+
 
 <style scoped>
 #Content {
@@ -689,7 +557,7 @@ body {
 .hint {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--accent);
+  color: #222; /* 深色 */
 }
 .muted {
   font-size: 12px;

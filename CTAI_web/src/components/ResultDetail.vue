@@ -1,0 +1,300 @@
+<template>
+  <div class="detail">
+    <div class="head">
+      <!-- 新增：返回上一页/返回列表 -->
+      <el-button class="back" icon="el-icon-arrow-left" @click="goBack"
+        >返回</el-button
+      >
+      <h2 class="title">{{ patient }} · {{ date }}</h2>
+      <!-- <el-button type="text" @click="goList">返回列表</el-button> -->
+    </div>
+
+    <!-- 关键指标（精简） -->
+    <section class="card" v-loading="loading">
+      <div class="card-title">关键指标（HU 与面积）</div>
+
+      <!-- 汇总（按行求平均） -->
+      <div v-if="summary" class="summary">
+        <div class="pill">
+          <span class="k">Psoas HU(mean)</span>
+          <span class="v">{{ fmt(summary.psoas_hu_mean) }}</span>
+        </div>
+        <div class="pill">
+          <span class="k">Psoas 面积(mm²)</span>
+          <span class="v">{{ fmt(summary.psoas_area_mm2) }}</span>
+        </div>
+        <div class="pill">
+          <span class="k">Combo HU(mean)</span>
+          <span class="v">{{ fmt(summary.combo_hu_mean) }}</span>
+        </div>
+        <div class="pill">
+          <span class="k">Combo 面积(mm²)</span>
+          <span class="v">{{ fmt(summary.combo_area_mm2) }}</span>
+        </div>
+      </div>
+
+      <!-- 明细（仅保留关键列） -->
+      <el-table
+        v-if="rows.length"
+        :data="rows"
+        border
+        size="small"
+        style="width: 100%; margin-top: 10px"
+      >
+        <el-table-column prop="filename" label="切片" width="160" />
+        <el-table-column
+          prop="psoas_hu_mean"
+          label="Psoas HU(mean)"
+          :formatter="fmtCell"
+        />
+        <el-table-column
+          prop="psoas_area_mm2"
+          label="Psoas 面积(mm²)"
+          :formatter="fmtCell"
+        />
+        <el-table-column
+          prop="combo_hu_mean"
+          label="Combo HU(mean)"
+          :formatter="fmtCell"
+        />
+        <el-table-column
+          prop="combo_area_mm2"
+          label="Combo 面积(mm²)"
+          :formatter="fmtCell"
+        />
+      </el-table>
+
+      <el-empty v-else description="未解析到关键指标" />
+    </section>
+
+    <!-- 图片网格 -->
+    <section class="card">
+      <div class="card-title">关键图片（middle）</div>
+      <div class="img-grid">
+        <div v-for="img in middle_images" :key="img" class="img-item">
+          <el-image
+            :src="imageUrl(img)"
+            fit="cover"
+            :preview-src-list="previewList"
+          />
+          <div class="caption">{{ img }}</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script>
+import { getKeyResults, getImageUrl } from "@/api";
+
+export default {
+  name: "ResultDetail",
+  data() {
+    return {
+      loading: true,
+      csv_files: {},
+      middle_images: [],
+      rows: [],
+      summary: null,
+      previewList: [],
+    };
+  },
+  computed: {
+    patient() {
+      return this.$route.params.patient;
+    },
+    date() {
+      return this.$route.params.date;
+    },
+  },
+  async created() {
+    await this.fetchResults();
+  },
+  methods: {
+    async fetchResults() {
+      this.loading = true;
+      try {
+        const res = await getKeyResults(this.patient, this.date);
+        const data = (res && res.data) || {};
+        this.csv_files = data.csv_files || {};
+        this.middle_images = data.middle_images || [];
+
+        this.previewList = this.middle_images.map((n) => this.imageUrl(n));
+
+        const keys = Object.keys(this.csv_files || {});
+        const csvName = keys.find((n) => /middle[_-]?only/i.test(n)) || keys[0];
+
+        if (csvName) {
+          this.rows = this.extractKeyRows(this.csv_files[csvName]);
+          this.summary = this.makeSummary(this.rows);
+        } else {
+          this.rows = [];
+          this.summary = null;
+        }
+      } catch (e) {
+        this.$message.error("获取结果失败");
+      } finally {
+        this.loading = false;
+      }
+    },
+    // 解析 CSV，并仅保留关键字段
+    extractKeyRows(csvText) {
+      if (!csvText) return [];
+      const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].split(",").map((h) => h.trim());
+      const idx = (name) =>
+        headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+
+      // 关键列名（与后端 CSV 保持一致）
+      const keyCols = {
+        filename: "filename",
+        psoas_hu_mean: "psoas_hu_mean",
+        psoas_area_mm2: "psoas_area_mm2",
+        combo_hu_mean: "combo_hu_mean",
+        combo_area_mm2: "combo_area_mm2",
+      };
+
+      // 找列索引
+      const col = {};
+      for (const k in keyCols) col[k] = idx(keyCols[k]);
+
+      return lines
+        .slice(1)
+        .map((line) => {
+          const cells = line.split(",").map((c) => c.trim());
+          const get = (i) => (i >= 0 && i < cells.length ? cells[i] : "");
+          const num = (v) => (v === "" ? null : Number(v));
+          return {
+            filename: get(col.filename),
+            psoas_hu_mean: num(get(col.psoas_hu_mean)),
+            psoas_area_mm2: num(get(col.psoas_area_mm2)),
+            combo_hu_mean: num(get(col.combo_hu_mean)),
+            combo_area_mm2: num(get(col.combo_area_mm2)),
+          };
+        })
+        .filter((r) => r.filename);
+    },
+    makeSummary(rows) {
+      if (!rows.length) return null;
+      const keys = [
+        "psoas_hu_mean",
+        "psoas_area_mm2",
+        "combo_hu_mean",
+        "combo_area_mm2",
+      ];
+      const s = {};
+      for (const k of keys) {
+        const vals = rows
+          .map((r) => r[k])
+          .filter((v) => typeof v === "number" && !Number.isNaN(v));
+        s[k] = vals.length
+          ? vals.reduce((a, b) => a + b, 0) / vals.length
+          : null;
+      }
+      return s;
+    },
+    imageUrl(filename) {
+      return getImageUrl(this.patient, this.date, filename);
+    },
+    fmt(n) {
+      return n == null || Number.isNaN(n) ? "-" : Number(n).toFixed(2);
+    },
+    fmtCell(row, col, cellValue) {
+      return this.fmt(cellValue);
+    },
+    goBack() {
+      if (window.history.length > 1) this.$router.back();
+      else this.$router.push("/results");
+    },
+    goList() {
+      if (this.$route.path !== "/results") this.$router.push("/results");
+    },
+  },
+};
+</script>
+
+<style scoped>
+.detail {
+  width: clamp(960px, 86vw, 1140px);
+  margin: 24px auto 80px;
+}
+
+.title {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a; /* 深色文字 */
+  font-weight: 800;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+.head {
+  margin-bottom: 12px;
+}
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  margin-bottom: 18px;
+  color: #111827; /* 卡片内默认深色文字 */
+}
+.card-title {
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #0f172a; /* 深色标题 */
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 12px;
+}
+.pill {
+  background: #f6f9ff;
+  border: 1px solid #e6eeff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pill .k {
+  color: #5a6;
+  opacity: 0.9;
+}
+.pill .v {
+  font-weight: 700;
+  color: #1f2;
+}
+
+.img-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.img-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f9fafb;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+.img-item .el-image {
+  width: 100%;
+  height: 180px;
+}
+.caption {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+</style>
