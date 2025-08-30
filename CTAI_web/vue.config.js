@@ -8,6 +8,7 @@ module.exports = {
   parallel: false,
   css: undefined,
   devServer: {
-    port: 7500
+    port: 7500,
+    host: '0.0.0.0' // 添加这一行
   }
 }
