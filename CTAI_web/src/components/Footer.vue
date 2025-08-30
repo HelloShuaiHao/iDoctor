@@ -8,7 +8,7 @@ export default {
   name: "Footer",
   data() {
     return {
-      msg: "Copyright 2025 © 肌小证诊断系统 版权所有",
+      msg: "Copyright 2025 © 肌少症诊断系统 版权所有",
     };
   },
 };
@@ -25,7 +25,7 @@ export default {
 }
 
 p {
-  color: #21b3b9;
+  color: #123737;
   text-align: center;
   margin: 30px auto;
   font-size: 1.1em;
