@@ -199,6 +199,8 @@ export default {
       } else {
         // 没有 overlay（例如只上传了 mask），用户可再点“继续后续流程”
         this.$message.success("Mask 已上传，点击『继续后续流程』生成后续结果");
+        // 如果仍旧使用默认推断的文件名，也强制刷新一次
+        this.loadL3Image();
       }
     },
     // 解析 CSV，并仅保留关键字段
@@ -332,13 +334,13 @@ export default {
       }
     },
     loadL3Image() {
-      // 你可以根据实际后端输出的文件名调整
-      this.l3ImageUrl = getL3ImageUrl(
-        this.patient,
-        this.date,
-        "L3_overlay",
-        "L3_clean.png"
-      );
+      // 仍使用固定文件名时也追加时间戳，避免第二次不刷新
+      this.l3ImageUrl = this.versionedL3Url("L3_overlay", "L3_clean.png");
+    },
+    versionedL3Url(folder, filename) {
+      // 每次调用都带上时间戳，触发 <img> 重新加载
+      const base = getL3ImageUrl(this.patient, this.date, folder, filename);
+      return `${base}?t=${Date.now()}`;
     },
   },
 };
