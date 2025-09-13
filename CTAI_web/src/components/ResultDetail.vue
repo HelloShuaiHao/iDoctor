@@ -114,7 +114,14 @@
 </template>
 
 <script>
-import { getKeyResults, getImageUrl } from "@/api";
+import {
+  getKeyResults,
+  getImageUrl,
+  l3Detect,
+  uploadL3Mask,
+  continueAfterL3,
+  getL3ImageUrl,
+} from "@/api";
 
 export default {
   name: "ResultDetail",
