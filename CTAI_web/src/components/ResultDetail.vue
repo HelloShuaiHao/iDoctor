@@ -33,35 +33,6 @@
         </div>
       </div>
 
-      <!-- L3 操作区 -->
-      <section class="card" style="margin-bottom: 18px">
-        <div class="card-title">L3 操作</div>
-        <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect"
-          >检测 L3</el-button
-        >
-        <el-upload
-          :show-file-list="false"
-          :before-upload="beforeMaskUpload"
-          :on-success="onMaskUploadSuccess"
-          :http-request="customMaskUpload"
-          accept=".png"
-          style="display: inline-block; margin-left: 12px"
-        >
-          <el-button>手动上传 L3 mask</el-button>
-        </el-upload>
-        <el-button
-          type="success"
-          :loading="l3Continuing"
-          style="margin-left: 12px"
-          @click="handleContinueAfterL3"
-          >继续后续流程</el-button
-        >
-        <div v-if="l3ImageUrl" style="margin-top: 12px">
-          <img :src="l3ImageUrl" style="max-width: 300px" />
-          <div style="font-size: 12px; color: #888">L3 结果预览</div>
-        </div>
-      </section>
-
       <!-- 明细（仅保留关键列） -->
       <el-table
         v-if="rows.length"
@@ -108,6 +79,35 @@
           />
           <div class="caption">{{ img }}</div>
         </div>
+      </div>
+    </section>
+
+    <!-- L3 操作区，移到关键图片下方 -->
+    <section class="card" style="margin-bottom: 18px">
+      <div class="card-title">L3 操作</div>
+      <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect"
+        >检测 L3</el-button
+      >
+      <el-upload
+        :show-file-list="false"
+        :before-upload="beforeMaskUpload"
+        :on-success="onMaskUploadSuccess"
+        :http-request="customMaskUpload"
+        accept=".png"
+        style="display: inline-block; margin-left: 12px"
+      >
+        <el-button>手动上传 L3 mask</el-button>
+      </el-upload>
+      <el-button
+        type="success"
+        :loading="l3Continuing"
+        style="margin-left: 12px"
+        @click="handleContinueAfterL3"
+        >继续后续流程</el-button
+      >
+      <div v-if="l3ImageUrl" style="margin-top: 12px">
+        <img :src="l3ImageUrl" style="max-width: 300px" />
+        <div style="font-size: 12px; color: #888">L3 结果预览</div>
       </div>
     </section>
   </div>
