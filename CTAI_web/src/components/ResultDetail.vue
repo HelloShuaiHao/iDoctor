@@ -33,6 +33,35 @@
         </div>
       </div>
 
+      <!-- L3 操作区 -->
+      <section class="card" style="margin-bottom: 18px">
+        <div class="card-title">L3 操作</div>
+        <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect"
+          >检测 L3</el-button
+        >
+        <el-upload
+          :show-file-list="false"
+          :before-upload="beforeMaskUpload"
+          :on-success="onMaskUploadSuccess"
+          :http-request="customMaskUpload"
+          accept=".png"
+          style="display: inline-block; margin-left: 12px"
+        >
+          <el-button>手动上传 L3 mask</el-button>
+        </el-upload>
+        <el-button
+          type="success"
+          :loading="l3Continuing"
+          style="margin-left: 12px"
+          @click="handleContinueAfterL3"
+          >继续后续流程</el-button
+        >
+        <div v-if="l3ImageUrl" style="margin-top: 12px">
+          <img :src="l3ImageUrl" style="max-width: 300px" />
+          <div style="font-size: 12px; color: #888">L3 结果预览</div>
+        </div>
+      </section>
+
       <!-- 明细（仅保留关键列） -->
       <el-table
         v-if="rows.length"
@@ -97,6 +126,9 @@ export default {
       rows: [],
       summary: null,
       previewList: [],
+      l3Detecting: false,
+      l3Continuing: false,
+      l3ImageUrl: "",
     };
   },
   computed: {
@@ -210,6 +242,62 @@ export default {
     },
     goList() {
       if (this.$route.path !== "/results") this.$router.push("/results");
+    },
+
+    async handleL3Detect() {
+      this.l3Detecting = true;
+      try {
+        await l3Detect(this.patient, this.date);
+        this.$message.success("L3 检测完成");
+        this.loadL3Image();
+      } catch (e) {
+        this.$message.error("L3 检测失败");
+      } finally {
+        this.l3Detecting = false;
+      }
+    },
+    beforeMaskUpload(file) {
+      if (!file.name.endsWith(".png")) {
+        this.$message.error("请上传 PNG 格式的 mask");
+        return false;
+      }
+      return true;
+    },
+    async customMaskUpload({ file, onSuccess, onError }) {
+      try {
+        await uploadL3Mask(this.patient, this.date, file);
+        this.$message.success("L3 mask 上传成功");
+        this.loadL3Image();
+        onSuccess();
+      } catch (e) {
+        this.$message.error("上传失败");
+        onError(e);
+      }
+    },
+    onMaskUploadSuccess() {
+      // 已在 customMaskUpload 处理
+    },
+    async handleContinueAfterL3() {
+      this.l3Continuing = true;
+      try {
+        await continueAfterL3(this.patient, this.date);
+        this.$message.success("后续流程已完成");
+        // 可刷新结果
+        await this.fetchResults();
+      } catch (e) {
+        this.$message.error("后续流程失败");
+      } finally {
+        this.l3Continuing = false;
+      }
+    },
+    loadL3Image() {
+      // 你可以根据实际后端输出的文件名调整
+      this.l3ImageUrl = getL3ImageUrl(
+        this.patient,
+        this.date,
+        "L3_overlay",
+        "L3_clean.png"
+      );
     },
   },
 };

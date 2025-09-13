@@ -33,4 +33,30 @@ export function getImageUrl(patient_name, study_date, filename) {
     return `${BASE_URL}/get_image/${encodeURIComponent(patient_name)}/${study_date}/${filename}`
 }
 
+// ...existing code...
+
+// L3 检测
+export async function l3Detect(patient_name, study_date) {
+    return axios.post(`${BASE_URL}/l3_detect/${encodeURIComponent(patient_name)}/${study_date}`);
+}
+
+// 手动上传 L3 mask
+export async function uploadL3Mask(patient, date, file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return axios.post(`${BASE_URL}/upload_l3_mask/${encodeURIComponent(patient)}/${date}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+    });
+}
+
+// L3 之后的流程
+export async function continueAfterL3(patient_name, study_date) {
+    return axios.post(`${BASE_URL}/continue_after_l3/${encodeURIComponent(patient_name)}/${study_date}`);
+}
+
+// 获取 L3 相关图片
+export function getL3ImageUrl(patient_name, study_date, folder, filename) {
+    return `${BASE_URL}/get_output_image/${encodeURIComponent(patient_name)}/${study_date}/${folder}/${filename}`;
+}
+
 export { BASE_URL }
