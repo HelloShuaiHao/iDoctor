@@ -59,4 +59,8 @@ export function getL3ImageUrl(patient_name, study_date, folder, filename) {
     return `${BASE_URL}/get_output_image/${encodeURIComponent(patient_name)}/${study_date}/${folder}/${filename}`;
 }
 
+// 生成侧视图（sagittal）
+export async function generateSagittal(patient_name, study_date, force = 0) {
+    return axios.post(`${BASE_URL}/generate_sagittal/${encodeURIComponent(patient_name)}/${study_date}?force=${force}`);
+}
 export { BASE_URL }

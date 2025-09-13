@@ -83,21 +83,17 @@
     </section>
 
     <!-- L3 操作区，移到关键图片下方 -->
+    <!-- L3 操作区（更新：使用手动标注弹窗） -->
     <section class="card" style="margin-bottom: 18px">
       <div class="card-title">L3 操作</div>
       <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect"
         >检测 L3</el-button
       >
-      <el-upload
-        :show-file-list="false"
-        :before-upload="beforeMaskUpload"
-        :on-success="onMaskUploadSuccess"
-        :http-request="customMaskUpload"
-        accept=".png"
-        style="display: inline-block; margin-left: 12px"
+
+      <el-button style="margin-left: 12px" @click="openMaskEditor"
+        >手动标注 L3 mask</el-button
       >
-        <el-button>手动上传 L3 mask</el-button>
-      </el-upload>
+
       <el-button
         type="success"
         :loading="l3Continuing"
@@ -105,11 +101,19 @@
         @click="handleContinueAfterL3"
         >继续后续流程</el-button
       >
+
       <div v-if="l3ImageUrl" style="margin-top: 12px">
         <img :src="l3ImageUrl" style="max-width: 300px" />
         <div style="font-size: 12px; color: #888">L3 结果预览</div>
       </div>
     </section>
+
+    <l3-mask-editor
+      :patient="patient"
+      :date="date"
+      :visible.sync="maskEditorVisible"
+      @uploaded="onMaskUploaded"
+    />
   </div>
 </template>
 
@@ -122,9 +126,11 @@ import {
   continueAfterL3,
   getL3ImageUrl,
 } from "@/api";
+import L3MaskEditor from "./L3MaskEditor.vue";
 
 export default {
   name: "ResultDetail",
+  components: { L3MaskEditor },
   data() {
     return {
       loading: true,
@@ -136,6 +142,7 @@ export default {
       l3Detecting: false,
       l3Continuing: false,
       l3ImageUrl: "",
+      maskEditorVisible: false,
     };
   },
   computed: {
@@ -174,6 +181,24 @@ export default {
         this.$message.error("获取结果失败");
       } finally {
         this.loading = false;
+      }
+    },
+    openMaskEditor() {
+      this.maskEditorVisible = true;
+    },
+    onMaskUploaded(payload) {
+      // 若后端立即生成 overlay 会返回 overlay 路径
+      if (payload && payload.overlay) {
+        const [folder, filename] = payload.overlay.split("/");
+        this.l3ImageUrl = getL3ImageUrl(
+          this.patient,
+          this.date,
+          folder,
+          filename
+        );
+      } else {
+        // 没有 overlay（例如只上传了 mask），用户可再点“继续后续流程”
+        this.$message.success("Mask 已上传，点击『继续后续流程』生成后续结果");
       }
     },
     // 解析 CSV，并仅保留关键字段
