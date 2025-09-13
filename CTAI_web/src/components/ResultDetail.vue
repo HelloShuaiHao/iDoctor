@@ -254,9 +254,18 @@ export default {
     async handleL3Detect() {
       this.l3Detecting = true;
       try {
-        await l3Detect(this.patient, this.date);
+        const res = await l3Detect(this.patient, this.date);
         this.$message.success("L3 检测完成");
-        this.loadL3Image();
+        // 展示后端返回的 l3_overlay 图片
+        if (res && res.data && res.data.l3_overlay) {
+          const [folder, filename] = res.data.l3_overlay.split("/");
+          this.l3ImageUrl = getL3ImageUrl(
+            this.patient,
+            this.date,
+            folder,
+            filename
+          );
+        }
       } catch (e) {
         this.$message.error("L3 检测失败");
       } finally {
