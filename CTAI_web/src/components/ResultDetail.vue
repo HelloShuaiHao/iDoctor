@@ -187,20 +187,11 @@ export default {
       this.maskEditorVisible = true;
     },
     onMaskUploaded(payload) {
-      // 若后端立即生成 overlay 会返回 overlay 路径
       if (payload && payload.overlay) {
-        const [folder, filename] = payload.overlay.split("/");
-        this.l3ImageUrl = getL3ImageUrl(
-          this.patient,
-          this.date,
-          folder,
-          filename
-        );
+        this.setL3Overlay(payload.overlay); // 统一刷新
       } else {
-        // 没有 overlay（例如只上传了 mask），用户可再点“继续后续流程”
         this.$message.success("Mask 已上传，点击『继续后续流程』生成后续结果");
-        // 如果仍旧使用默认推断的文件名，也强制刷新一次
-        this.loadL3Image();
+        this.loadL3Image(); // 默认文件名也强制刷新
       }
     },
     // 解析 CSV，并仅保留关键字段
@@ -283,15 +274,10 @@ export default {
       try {
         const res = await l3Detect(this.patient, this.date);
         this.$message.success("L3 检测完成");
-        // 展示后端返回的 l3_overlay 图片
         if (res && res.data && res.data.l3_overlay) {
-          const [folder, filename] = res.data.l3_overlay.split("/");
-          this.l3ImageUrl = getL3ImageUrl(
-            this.patient,
-            this.date,
-            folder,
-            filename
-          );
+          this.setL3Overlay(res.data.l3_overlay); // 强制刷新
+        } else {
+          this.loadL3Image();
         }
       } catch (e) {
         this.$message.error("L3 检测失败");
@@ -323,9 +309,14 @@ export default {
     async handleContinueAfterL3() {
       this.l3Continuing = true;
       try {
-        await continueAfterL3(this.patient, this.date);
+        const res = await continueAfterL3(this.patient, this.date);
         this.$message.success("后续流程已完成");
-        // 可刷新结果
+        if (res && res.data && res.data.l3_overlay) {
+          this.setL3Overlay(res.data.l3_overlay);
+        } else {
+          // 若接口不返回 overlay，尝试加载默认文件
+          this.loadL3Image();
+        }
         await this.fetchResults();
       } catch (e) {
         this.$message.error("后续流程失败");
@@ -334,11 +325,16 @@ export default {
       }
     },
     loadL3Image() {
-      // 仍使用固定文件名时也追加时间戳，避免第二次不刷新
       this.l3ImageUrl = this.versionedL3Url("L3_overlay", "L3_clean.png");
     },
+    setL3Overlay(relPath) {
+      if (!relPath) return;
+      const parts = relPath.split("/");
+      const folder = parts.shift();
+      const filename = parts.join("/") || "L3_clean.png";
+      this.l3ImageUrl = this.versionedL3Url(folder, filename);
+    },
     versionedL3Url(folder, filename) {
-      // 每次调用都带上时间戳，触发 <img> 重新加载
       const base = getL3ImageUrl(this.patient, this.date, folder, filename);
       return `${base}?t=${Date.now()}`;
     },
