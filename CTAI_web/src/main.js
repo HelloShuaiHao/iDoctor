@@ -15,6 +15,9 @@ import '../node_modules/element-ui/lib/theme-chalk/index.css'
 import '../src/assets/style.css'
 import './theme/index.css'
 
+import { i18n } from './i18n'
+
+
 Vue.use(Element)
 Vue.config.productionTip = false
 Vue.use(VueRouter)
@@ -37,5 +40,6 @@ Vue.component('App', App)
 new Vue({
     el: '#app',
     router,
+    i18n,
     render: h => h(App)
 })

@@ -7,15 +7,16 @@
         :active="currentStep"
         finish-status="success"
       >
-        <el-step title="步骤 1 上传 DICOM ZIP">
+        <el-step :title="$t('steps.step1')">
           <template #description>
             <el-button
               type="primary"
               size="mini"
               :loading="uploading"
               @click="triggerUpload"
-              >选择文件</el-button
             >
+              {{ $t("actions.chooseFile") }}
+            </el-button>
             <input
               ref="fileInput"
               type="file"
@@ -23,19 +24,25 @@
               style="display: none"
               @change="handleFile"
             />
-            <p v-if="fileName" class="hint">已选：{{ fileName }}</p>
+            <p v-if="fileName" class="hint">
+              {{ $t("upload.selectedPrefix") }} {{ fileName }}
+            </p>
           </template>
         </el-step>
-        <el-step title="步骤 2 处理数据" :disabled="currentStep < 2">
+        <el-step :title="$t('steps.step2')" :disabled="currentStep < 2">
           <template #description>
-            <p v-if="currentStep === 1" class="muted">等待上传完成</p>
-            <p v-else>点击“开始处理”调用后端推理</p>
+            <p v-if="currentStep === 1" class="muted">
+              {{ $t("messages.waitUpload") }}
+            </p>
+            <p v-else>{{ $t("messages.clickProcessHint") }}</p>
           </template>
         </el-step>
-        <el-step title="步骤 3 查看结果" :disabled="currentStep < 3">
+        <el-step :title="$t('steps.step3')" :disabled="currentStep < 3">
           <template #description>
-            <p v-if="currentStep < 3" class="muted">等待处理完成</p>
-            <p v-else>进入结果详情或结果列表</p>
+            <p v-if="currentStep < 3" class="muted">
+              {{ $t("messages.waitProcess") }}
+            </p>
+            <p v-else>{{ $t("messages.enterResultHint") }}</p>
           </template>
         </el-step>
       </el-steps>
@@ -43,28 +50,28 @@
 
     <!-- 右侧主区 -->
     <section class="flow-main">
-      <!-- Step 1: 上传 -->
+      <!-- Step 1 -->
       <div v-if="currentStep === 1" class="panel">
-        <h3>上传 CT 扫描压缩包（ZIP）</h3>
+        <h3>{{ $t("upload.uploadZipTitle") }}</h3>
         <el-form label-width="100px" :model="form">
-          <el-form-item label="病人姓名">
+          <el-form-item :label="$t('form.patientName')">
             <el-input
               v-model="form.patient_name"
-              placeholder="例如：张三"
+              :placeholder="$t('form.patientNamePlaceholder')"
               clearable
             />
           </el-form-item>
-          <el-form-item label="检查日期">
+          <el-form-item :label="$t('form.studyDate')">
             <el-input
               v-model="form.study_date"
-              placeholder="例如：20230831"
+              :placeholder="$t('form.studyDatePlaceholder')"
               clearable
             />
           </el-form-item>
-          <el-form-item label="ZIP 文件">
-            <el-button @click="triggerUpload" :loading="uploading"
-              >选择文件</el-button
-            >
+          <el-form-item :label="$t('form.zipFile')">
+            <el-button @click="triggerUpload" :loading="uploading">
+              {{ $t("actions.chooseFile") }}
+            </el-button>
             <span v-if="fileName" style="margin-left: 8px">{{ fileName }}</span>
           </el-form-item>
           <el-form-item>
@@ -74,58 +81,59 @@
               :loading="uploading"
               @click="uploadZip"
             >
-              上传
+              {{ $t("actions.upload") }}
             </el-button>
-            <el-button type="text" @click="goResultList"
-              >查看已有结果</el-button
-            >
+            <el-button type="text" @click="goResultList">
+              {{ $t("actions.viewAll") }}
+            </el-button>
           </el-form-item>
         </el-form>
       </div>
 
-      <!-- Step 2: 处理 -->
+      <!-- Step 2 -->
       <div v-else-if="currentStep === 2" class="panel">
         <div class="panel-header">
-          <h3>处理数据</h3>
+          <h3>{{ $t("labels.processData") }}</h3>
         </div>
         <el-alert
-          title="将调用后端 /process 接口，对刚上传的数据进行处理"
+          :title="$t('messages.processApiTip')"
           type="info"
           show-icon
           style="margin-bottom: 16px"
         />
         <el-button type="primary" :loading="processing" @click="processData">
-          开始处理
+          {{ $t("actions.process") }}
         </el-button>
         <el-button type="text" style="margin-left: 8px" @click="backToUpload">
-          返回上一步
+          {{ $t("actions.prevStep") }}
         </el-button>
       </div>
 
-      <!-- Step 3: 查看结果 -->
+      <!-- Step 3 -->
       <div v-else-if="currentStep === 3" class="panel">
         <div class="panel-header">
-          <h3>处理完成</h3>
+          <h3>{{ $t("messages.processSuccess") }}</h3>
         </div>
-        <el-result icon="success" title="已完成处理">
+        <el-result icon="success" :title="$t('messages.processSuccess')">
           <template #extra>
-            <el-button type="primary" @click="goResultDetail"
-              >查看本次结果</el-button
-            >
-            <el-button @click="goResultList" style="margin-left: 8px"
-              >查看所有结果</el-button
-            >
+            <el-button type="primary" @click="goResultDetail">
+              {{ $t("actions.viewResult") }}
+            </el-button>
+            <el-button @click="goResultList" style="margin-left: 8px">
+              {{ $t("actions.viewAll") }}
+            </el-button>
             <el-button
               type="text"
               style="margin-left: 8px"
               @click="backToProcess"
-              >返回上一步</el-button
             >
+              {{ $t("actions.prevStep") }}
+            </el-button>
           </template>
         </el-result>
       </div>
 
-      <el-empty v-else description="无内容" />
+      <el-empty v-else :description="$t('messages.noContent')" />
     </section>
   </div>
 </template>
@@ -160,6 +168,12 @@ export default {
     },
   },
   methods: {
+    debug(err) {
+      if (process.env.NODE_ENV !== "production") {
+        /* eslint-disable-next-line no-console */
+        console.error(err);
+      }
+    },
     triggerUpload() {
       this.$refs.fileInput && this.$refs.fileInput.click();
     },
@@ -168,7 +182,6 @@ export default {
       if (!f) return;
       this.fileObj = f;
       this.fileName = f.name;
-      // 允许重复选择同一文件
       this.$nextTick(() => (this.$refs.fileInput.value = ""));
     },
     async uploadZip() {
@@ -180,11 +193,11 @@ export default {
           study_date: this.form.study_date,
           file: this.fileObj,
         });
-        this.$message.success("上传成功");
+        this.$message.success(this.$t("messages.uploadSuccess"));
         this.currentStep = 2;
       } catch (e) {
-        console.error(e);
-        this.$message.error("上传失败");
+        this.debug(e);
+        this.$message.error(this.$t("messages.uploadFail"));
       } finally {
         this.uploading = false;
       }
@@ -193,17 +206,16 @@ export default {
       this.processing = true;
       try {
         await processCase(this.form.patient_name, this.form.study_date);
-        this.$message.success("处理完成");
+        this.$message.success(this.$t("messages.processSuccess"));
         this.currentStep = 3;
       } catch (e) {
-        console.error(e);
-        this.$message.error("处理失败");
+        this.debug(e);
+        this.$message.error(this.$t("messages.processFail"));
       } finally {
         this.processing = false;
       }
     },
     goResultDetail() {
-      // 路由到结果详情页，注意中文参数在结果页里会再做编码调用 API
       this.$router.push(
         `/results/${this.form.patient_name}/${this.form.study_date}`
       );
@@ -213,6 +225,9 @@ export default {
     },
     backToUpload() {
       this.currentStep = 1;
+    },
+    backToProcess() {
+      this.currentStep = 2;
     },
   },
 };
@@ -353,7 +368,6 @@ export default {
 </style>
 
 
-// ...existing code...
 <style>
 :root {
   --accent: #0a84ff; /* System Blue */
@@ -446,7 +460,6 @@ body {
 }
 </style>
 
-// ...existing code...
 <style scoped>
 #Content {
   width: clamp(960px, 86vw, 1140px);
@@ -573,7 +586,6 @@ body {
 }
 </style>
 
-// ...existing code...
 <style scoped>
 #Footer {
   width: clamp(960px, 86vw, 1140px);

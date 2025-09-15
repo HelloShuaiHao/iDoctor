@@ -1,39 +1,50 @@
 <template>
   <div class="detail">
     <div class="head">
-      <!-- 新增：返回上一页/返回列表 -->
-      <el-button class="back" icon="el-icon-arrow-left" @click="goBack"
-        >返回</el-button
+      <el-button
+        class="back-btn"
+        icon="el-icon-arrow-left"
+        @click="goBack"
+        plain
+        >{{ $t("actions.back") }}</el-button
       >
-      <h2 class="title">{{ patient }} · {{ date }}</h2>
-      <!-- <el-button type="text" @click="goList">返回列表</el-button> -->
+
+      <div class="case-title">
+        <h1>
+          <span class="pid">{{ patient }}</span>
+          <span class="sep">•</span>
+          <span class="date">{{ date }}</span>
+        </h1>
+      </div>
+
+      <!-- 预留右侧操作位（可加刷新 / 导出） -->
+      <div class="head-actions">
+        <!-- <el-button size="mini" @click="fetchResults" :loading="loading" plain>Refresh</el-button> -->
+      </div>
     </div>
 
-    <!-- 关键指标（精简） -->
     <section class="card" v-loading="loading">
-      <div class="card-title">关键指标（HU 与面积）</div>
+      <div class="card-title">{{ $t("result.keyMetrics") }}</div>
 
-      <!-- 汇总（按行求平均） -->
       <div v-if="summary" class="summary">
         <div class="pill">
-          <span class="k">Psoas HU(mean)</span>
+          <span class="k">{{ $t("fields.psoasHu") }}</span>
           <span class="v">{{ fmt(summary.psoas_hu_mean) }}</span>
         </div>
         <div class="pill">
-          <span class="k">Psoas 面积(mm²)</span>
+          <span class="k">{{ $t("fields.psoasArea") }}</span>
           <span class="v">{{ fmt(summary.psoas_area_mm2) }}</span>
         </div>
         <div class="pill">
-          <span class="k">Combo HU(mean)</span>
+          <span class="k">{{ $t("fields.comboHu") }}</span>
           <span class="v">{{ fmt(summary.combo_hu_mean) }}</span>
         </div>
         <div class="pill">
-          <span class="k">Combo 面积(mm²)</span>
+          <span class="k">{{ $t("fields.comboArea") }}</span>
           <span class="v">{{ fmt(summary.combo_area_mm2) }}</span>
         </div>
       </div>
 
-      <!-- 明细（仅保留关键列） -->
       <el-table
         v-if="rows.length"
         :data="rows"
@@ -41,35 +52,38 @@
         size="small"
         style="width: 100%; margin-top: 10px"
       >
-        <el-table-column prop="filename" label="切片" width="160" />
+        <el-table-column
+          prop="filename"
+          :label="$t('fields.slice')"
+          width="160"
+        />
         <el-table-column
           prop="psoas_hu_mean"
-          label="Psoas HU(mean)"
+          :label="$t('fields.psoasHu')"
           :formatter="fmtCell"
         />
         <el-table-column
           prop="psoas_area_mm2"
-          label="Psoas 面积(mm²)"
+          :label="$t('fields.psoasArea')"
           :formatter="fmtCell"
         />
         <el-table-column
           prop="combo_hu_mean"
-          label="Combo HU(mean)"
+          :label="$t('fields.comboHu')"
           :formatter="fmtCell"
         />
         <el-table-column
           prop="combo_area_mm2"
-          label="Combo 面积(mm²)"
+          :label="$t('fields.comboArea')"
           :formatter="fmtCell"
         />
       </el-table>
 
-      <el-empty v-else description="未解析到关键指标" />
+      <el-empty v-else :description="$t('result.emptyMetrics')" />
     </section>
 
-    <!-- 图片网格 -->
     <section class="card">
-      <div class="card-title">关键图片（middle）</div>
+      <div class="card-title">{{ $t("result.keyImages") }}</div>
       <div class="img-grid">
         <div v-for="img in middle_images" :key="img" class="img-item">
           <el-image
@@ -82,29 +96,30 @@
       </div>
     </section>
 
-    <!-- L3 操作区，移到关键图片下方 -->
-    <!-- L3 操作区（更新：使用手动标注弹窗） -->
     <section class="card" style="margin-bottom: 18px">
-      <div class="card-title">L3 操作</div>
-      <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect"
-        >检测 L3</el-button
-      >
+      <div class="card-title">{{ $t("result.l3Ops") }}</div>
+      <el-button type="primary" :loading="l3Detecting" @click="handleL3Detect">
+        {{ $t("actions.detectL3") }}
+      </el-button>
 
-      <el-button style="margin-left: 12px" @click="openMaskEditor"
-        >手动标注 L3 mask</el-button
-      >
+      <el-button style="margin-left: 12px" @click="openMaskEditor">
+        {{ $t("actions.manualL3") }}
+      </el-button>
 
       <el-button
         type="success"
         :loading="l3Continuing"
         style="margin-left: 12px"
         @click="handleContinueAfterL3"
-        >继续后续流程</el-button
       >
+        {{ $t("actions.continue") }}
+      </el-button>
 
       <div v-if="l3ImageUrl" style="margin-top: 12px">
         <img :src="l3ImageUrl" style="max-width: 300px" />
-        <div style="font-size: 12px; color: #888">L3 结果预览</div>
+        <div style="font-size: 12px; color: #888">
+          {{ $t("result.l3Preview") }}
+        </div>
       </div>
     </section>
 
@@ -164,12 +179,9 @@ export default {
         const data = (res && res.data) || {};
         this.csv_files = data.csv_files || {};
         this.middle_images = data.middle_images || [];
-
         this.previewList = this.middle_images.map((n) => this.imageUrl(n));
-
         const keys = Object.keys(this.csv_files || {});
         const csvName = keys.find((n) => /middle[_-]?only/i.test(n)) || keys[0];
-
         if (csvName) {
           this.rows = this.extractKeyRows(this.csv_files[csvName]);
           this.summary = this.makeSummary(this.rows);
@@ -178,7 +190,7 @@ export default {
           this.summary = null;
         }
       } catch (e) {
-        this.$message.error("获取结果失败");
+        this.$message.error(this.$t("messages.fetchFail"));
       } finally {
         this.loading = false;
       }
@@ -188,23 +200,19 @@ export default {
     },
     onMaskUploaded(payload) {
       if (payload && payload.overlay) {
-        this.setL3Overlay(payload.overlay); // 统一刷新
+        this.setL3Overlay(payload.overlay);
       } else {
-        this.$message.success("Mask 已上传，点击『继续后续流程』生成后续结果");
-        this.loadL3Image(); // 默认文件名也强制刷新
+        this.$message.success(this.$t("messages.maskUploadSuccess"));
+        this.loadL3Image();
       }
     },
-    // 解析 CSV，并仅保留关键字段
     extractKeyRows(csvText) {
       if (!csvText) return [];
       const lines = csvText.trim().split(/\r?\n/).filter(Boolean);
       if (lines.length < 2) return [];
-
       const headers = lines[0].split(",").map((h) => h.trim());
       const idx = (name) =>
         headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-
-      // 关键列名（与后端 CSV 保持一致）
       const keyCols = {
         filename: "filename",
         psoas_hu_mean: "psoas_hu_mean",
@@ -212,11 +220,8 @@ export default {
         combo_hu_mean: "combo_hu_mean",
         combo_area_mm2: "combo_area_mm2",
       };
-
-      // 找列索引
       const col = {};
       for (const k in keyCols) col[k] = idx(keyCols[k]);
-
       return lines
         .slice(1)
         .map((line) => {
@@ -268,26 +273,25 @@ export default {
     goList() {
       if (this.$route.path !== "/results") this.$router.push("/results");
     },
-
     async handleL3Detect() {
       this.l3Detecting = true;
       try {
         const res = await l3Detect(this.patient, this.date);
-        this.$message.success("L3 检测完成");
+        this.$message.success(this.$t("messages.l3DetectSuccess"));
         if (res && res.data && res.data.l3_overlay) {
-          this.setL3Overlay(res.data.l3_overlay); // 强制刷新
+          this.setL3Overlay(res.data.l3_overlay);
         } else {
           this.loadL3Image();
         }
       } catch (e) {
-        this.$message.error("L3 检测失败");
+        this.$message.error(this.$t("messages.l3DetectFail"));
       } finally {
         this.l3Detecting = false;
       }
     },
     beforeMaskUpload(file) {
       if (!file.name.endsWith(".png")) {
-        this.$message.error("请上传 PNG 格式的 mask");
+        this.$message.error(this.$t("messages.pngOnly"));
         return false;
       }
       return true;
@@ -295,31 +299,28 @@ export default {
     async customMaskUpload({ file, onSuccess, onError }) {
       try {
         await uploadL3Mask(this.patient, this.date, file);
-        this.$message.success("L3 mask 上传成功");
+        this.$message.success(this.$t("messages.maskUploadSuccess"));
         this.loadL3Image();
         onSuccess();
       } catch (e) {
-        this.$message.error("上传失败");
+        this.$message.error(this.$t("messages.maskUploadFail"));
         onError(e);
       }
     },
-    onMaskUploadSuccess() {
-      // 已在 customMaskUpload 处理
-    },
+    onMaskUploadSuccess() {},
     async handleContinueAfterL3() {
       this.l3Continuing = true;
       try {
         const res = await continueAfterL3(this.patient, this.date);
-        this.$message.success("后续流程已完成");
+        this.$message.success(this.$t("messages.l3ContinueSuccess"));
         if (res && res.data && res.data.l3_overlay) {
           this.setL3Overlay(res.data.l3_overlay);
         } else {
-          // 若接口不返回 overlay，尝试加载默认文件
           this.loadL3Image();
         }
         await this.fetchResults();
       } catch (e) {
-        this.$message.error("后续流程失败");
+        this.$message.error(this.$t("messages.l3ContinueFail"));
       } finally {
         this.l3Continuing = false;
       }
@@ -353,12 +354,23 @@ export default {
   padding: 8px 14px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
-  color: #0f172a; /* 深色文字 */
+  color: #0f172a;
   font-weight: 800;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 .head {
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+  padding: 14px 28px 16px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 26px;
+  box-shadow: 0 8px 28px -10px rgba(0, 0, 0, 0.1);
 }
 .card {
   background: #fff;
@@ -366,12 +378,12 @@ export default {
   padding: 16px 18px 18px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
   margin-bottom: 18px;
-  color: #111827; /* 卡片内默认深色文字 */
+  color: #111827;
 }
 .card-title {
   font-weight: 800;
   margin-bottom: 8px;
-  color: #0f172a; /* 深色标题 */
+  color: #0f172a;
 }
 
 .summary {

@@ -2,14 +2,16 @@
   <div class="list-page">
     <div class="card">
       <div class="card-head">
-        <el-button icon="el-icon-arrow-left" @click="goBack">返回</el-button>
-        <h2 class="title">已处理结果</h2>
+        <el-button icon="el-icon-arrow-left" @click="goBack">
+          {{ $t("actions.back") }}
+        </el-button>
+        <h2 class="title">{{ $t("result.processedList") }}</h2>
         <div class="spacer"></div>
         <el-input
           v-model="keyword"
           size="small"
           clearable
-          placeholder="搜索病人或日期"
+          :placeholder="$t('result.searchPlaceholder')"
           class="search"
         />
         <el-button
@@ -19,7 +21,7 @@
           :loading="loading"
           @click="fetchPatients"
         >
-          刷新
+          {{ $t("actions.refresh") }}
         </el-button>
       </div>
 
@@ -32,16 +34,24 @@
         style="width: 100%"
         @row-dblclick="viewDetail"
       >
-        <el-table-column prop="patient" label="病人" min-width="180" />
-        <el-table-column prop="date" label="日期" width="140" />
-        <el-table-column label="操作" width="140" align="center">
+        <el-table-column
+          prop="patient"
+          :label="$t('fields.patient')"
+          min-width="180"
+        />
+        <el-table-column prop="date" :label="$t('fields.date')" width="140" />
+        <el-table-column
+          :label="$t('actions.action')"
+          width="140"
+          align="center"
+        >
           <template slot-scope="scope">
             <el-button
               type="primary"
               size="mini"
               @click.stop="viewDetail(scope.row)"
             >
-              查看详情
+              {{ $t("actions.viewResult") }}
             </el-button>
           </template>
         </el-table-column>
@@ -49,7 +59,7 @@
 
       <el-empty
         v-if="!loading && filteredRows.length === 0"
-        description="暂无匹配结果"
+        :description="$t('result.noMatch')"
       />
     </div>
   </div>
@@ -63,7 +73,7 @@ export default {
   data() {
     return {
       loading: false,
-      rows: [], // { patient, date, display }
+      rows: [],
       keyword: "",
     };
   },
@@ -95,7 +105,7 @@ export default {
           };
         });
       } catch (e) {
-        this.$message.error("获取结果列表失败");
+        this.$message.error(this.$t("messages.fetchFail"));
       } finally {
         this.loading = false;
       }
@@ -133,7 +143,7 @@ export default {
 
 .title {
   margin: 0 4px;
-  color: #0f172a; /* 深色标题 */
+  color: #0f172a;
   font-weight: 800;
 }
 
@@ -145,7 +155,6 @@ export default {
   width: 240px;
 }
 
-/* 提升表格对比度 */
 :deep(.el-table th) {
   background: #f8fafc;
   color: #0f172a;

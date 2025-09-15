@@ -5,7 +5,7 @@
     width="860px"
     :close-on-click-modal="false"
     :destroy-on-close="true"
-    title="L3 Mask 标注"
+    :title="$t('editor.l3MaskTitle')"
     @closed="handleClosed"
   >
     <div class="stage-wrapper" v-loading="generating">
@@ -26,41 +26,42 @@
           @mouseleave="onUp"
         ></canvas>
       </div>
-      <el-empty v-else description="未获取到侧视图" />
+      <el-empty v-else :description="$t('editor.noSagittal')" />
     </div>
 
     <div class="tips">
-      拖动鼠标绘制矩形（可多次，支持撤销/清空）。保存上传将把所有矩形合成白色区域、背景黑色的二值
-      mask。
+      {{ $t('editor.tips') }}
     </div>
 
     <span slot="footer" class="footer-bar">
       <div class="left">
-        <el-button size="mini" :loading="generating" @click="fetchSagittal(1)"
-          >重新生成</el-button
-        >
-        <el-button size="mini" :disabled="!rects.length" @click="undo"
-          >撤销</el-button
-        >
-        <el-button size="mini" :disabled="!rects.length" @click="clearRects"
-          >清空</el-button
-        >
+        <el-button size="mini" :loading="generating" @click="fetchSagittal(1)">
+          {{ $t('actions.retry') }}
+        </el-button>
+        <el-button size="mini" :disabled="!rects.length" @click="undo">
+          {{ $t('actions.undo') }}
+        </el-button>
+        <el-button size="mini" :disabled="!rects.length" @click="clearRects">
+          {{ $t('actions.clear') }}
+        </el-button>
       </div>
       <div class="right">
-        <el-button size="mini" @click="close">取消</el-button>
+        <el-button size="mini" @click="close">
+          {{ $t('actions.cancel') }}
+        </el-button>
         <el-button
           type="primary"
           size="mini"
           :disabled="!rects.length || uploading || !imageUrl"
           :loading="uploading"
           @click="saveAndUpload"
-          >保存上传</el-button
         >
+          {{ $t('actions.saveUpload') }}
+        </el-button>
       </div>
     </span>
   </el-dialog>
 </template>
-
 <script>
 import { generateSagittal, getL3ImageUrl, uploadL3Mask } from "@/api";
 

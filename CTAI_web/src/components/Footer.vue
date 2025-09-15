@@ -1,8 +1,9 @@
 <template>
-  <div id="Footer">
-    <p>{{ msg }}</p>
-  </div>
+  <footer id="Footer">
+    <p>{{ $t("footer.copyright", { year: currentYear }) }}</p>
+  </footer>
 </template>
+
 <script>
 export default {
   name: "Footer",
