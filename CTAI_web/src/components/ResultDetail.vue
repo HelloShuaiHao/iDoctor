@@ -94,6 +94,14 @@
           <div class="caption">{{ img }}</div>
         </div>
       </div>
+      <div class="mid-ops" v-if="axisalMainName">
+        <el-button
+          size="mini"
+          @click="openMiddleEditor"
+          style="margin-top: 14px"
+          >Manual Middle Mask</el-button
+        >
+      </div>
     </section>
 
     <section class="card" style="margin-bottom: 18px">
@@ -122,7 +130,14 @@
         </div>
       </div>
     </section>
-
+    <middle-mask-editor
+      v-if="axisalMainName"
+      :axisal-filename="axisalMainName"
+      :patient="patient"
+      :date="date"
+      :visible.sync="middleEditorVisible"
+      @uploaded="onMiddleUploaded"
+    />
     <l3-mask-editor
       :patient="patient"
       :date="date"
@@ -142,10 +157,11 @@ import {
   getL3ImageUrl,
 } from "@/api";
 import L3MaskEditor from "./L3MaskEditor.vue";
+import MiddleMaskEditor from "./MiddleMaskEditor.vue";
 
 export default {
   name: "ResultDetail",
-  components: { L3MaskEditor },
+  components: { L3MaskEditor, MiddleMaskEditor },
   data() {
     return {
       loading: true,
@@ -158,6 +174,9 @@ export default {
       l3Continuing: false,
       l3ImageUrl: "",
       maskEditorVisible: false,
+      middleEditorVisible: false,
+      middleMainName: "", // slice_xxx_middle.png
+      axisalMainName: "", // slice_xxx.png (用于原图标注)
     };
   },
   computed: {
@@ -185,15 +204,33 @@ export default {
         if (csvName) {
           this.rows = this.extractKeyRows(this.csv_files[csvName]);
           this.summary = this.makeSummary(this.rows);
+          // middle 主图名称：取第一行 filename (含 _middle.png)
+          if (this.rows.length) {
+            this.middleMainName = this.rows[0].filename;
+          } else if (this.middle_images.length) {
+            this.middleMainName = this.middle_images[0];
+          }
         } else {
           this.rows = [];
           this.summary = null;
+          this.middleMainName = this.middle_images[0] || "";
         }
+        // 推导 axisal 原图名
+        this.axisalMainName = this.middleMainName
+          ? this.middleMainName.replace("_middle.png", ".png")
+          : "";
       } catch (e) {
         this.$message.error(this.$t("messages.fetchFail"));
       } finally {
         this.loading = false;
       }
+    },
+    openMiddleEditor() {
+      this.middleEditorVisible = true;
+    },
+    onMiddleUploaded() {
+      // 重新取最新 middle 相关数据
+      this.fetchResults();
     },
     openMaskEditor() {
       this.maskEditorVisible = true;
@@ -435,5 +472,8 @@ export default {
   font-size: 12px;
   padding: 3px 8px;
   border-radius: 999px;
+}
+.mid-ops {
+  margin-top: 4px;
 }
 </style>

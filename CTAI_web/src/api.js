@@ -28,9 +28,9 @@ export async function getKeyResults(patient_name, study_date) {
     return axios.get(`${BASE_URL}/get_key_results/${encodeURIComponent(patient_name)}/${study_date}`)
 }
 
-// 获取图片 URL（直接用于 <img> 或 el-image 的 :src）
+//添加时间戳
 export function getImageUrl(patient_name, study_date, filename) {
-    return `${BASE_URL}/get_image/${encodeURIComponent(patient_name)}/${study_date}/${filename}`
+    return `${BASE_URL}/get_image/${encodeURIComponent(patient_name)}/${study_date}/${filename}?t=${Date.now()}`;
 }
 
 // ...existing code...
@@ -62,5 +62,33 @@ export function getL3ImageUrl(patient_name, study_date, folder, filename) {
 // 生成侧视图（sagittal）
 export async function generateSagittal(patient_name, study_date, force = 0) {
     return axios.post(`${BASE_URL}/generate_sagittal/${encodeURIComponent(patient_name)}/${study_date}?force=${force}`);
+}
+
+export function getAxisalImageUrl(patient_name, study_date, filename) {
+    return getL3ImageUrl(patient_name, study_date, 'Axisal', filename)
+}
+
+// 手动上传 Middle 原图的 psoas/combo mask
+export async function uploadMiddleManualMask(patient, date, psoasFile, comboFile) {
+    const fd = new FormData()
+    if (psoasFile) fd.append('psoas_mask', psoasFile)
+    if (comboFile) fd.append('combo_mask', comboFile)
+    try {
+        const res = await axios.post(
+            `${BASE_URL}/upload_middle_manual_mask/${encodeURIComponent(patient)}/${encodeURIComponent(date)}`,
+            fd,
+            { headers: { 'Accept': 'application/json' } }
+        )
+        return res
+    } catch (e) {
+        // 让调用方能看到服务器的错误信息
+        if (e.response) {
+            console.error('[uploadMiddleManualMask] server error:', e.response.status, e.response.data)
+            throw new Error((_t.response.data && _t.response.data.error) || 'HTTP ' + _t.response.status);
+        } else {
+            console.error('[uploadMiddleManualMask] network error:', e)
+            throw e
+        }
+    }
 }
 export { BASE_URL }

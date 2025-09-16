@@ -44,7 +44,8 @@ export const messages = {
             prevStep: '返回上一步',
             action: '操作',
             undo: '撤销',
-            clear: '清空'
+            clear: '清空',
+            undoPoint: '撤销点'
         },
         form: {
             patientName: '病人姓名',
@@ -106,7 +107,19 @@ export const messages = {
         },
         footer: {
             copyright: 'Copyright {year} © 肌少症诊断系统 版权所有'
-        }
+        },
+        middleEditor: {
+            title: 'Middle Mask 标注',
+            editing: '当前图像',
+            psoas: 'Psoas 区域',
+            combo: 'Combo 区域',
+            modePsoas: 'Psoas 模式',
+            modeCombo: 'Combo 模式',
+            switchTo: '切换到 {mode}',
+            tips: '拖动绘制矩形（多次）。可在 Psoas / Combo 两模式间切换；保存将上传两张黑底白区 PNG。',
+            emptyWarn: '至少在一个模式下绘制一个矩形',
+            polyHint: '单击添加顶点；最后一个点靠近第一个点自动闭合；Backspace 删除上一个点；Esc 取消当前多边形；撤销删除最近一个多边形。'
+        },
     },
     en: {
         app: { title: 'Sarcopenia Diagnosis System' },
@@ -136,7 +149,8 @@ export const messages = {
             prevStep: 'Previous Step',
             action: 'Action',
             undo: 'Undo',
-            clear: 'Clear'
+            clear: 'Clear',
+            undoPoint: 'Undo Point'
         },
         form: {
             patientName: 'Patient Name',
@@ -198,6 +212,18 @@ export const messages = {
         },
         footer: {
             copyright: 'Copyright {year} © Sarcopenia Diagnosis System. All rights reserved.'
+        },
+        middleEditor: {
+            title: 'Middle Mask Annotation',
+            editing: 'Current Image',
+            psoas: 'Psoas Region',
+            combo: 'Combo Region',
+            modePsoas: 'Psoas Mode',
+            modeCombo: 'Combo Mode',
+            switchTo: 'Switch to {mode}',
+            tips: 'Drag to draw rectangles (multiple). Switch between Psoas / Combo modes; saving uploads two binary PNG masks.',
+            emptyWarn: 'Draw at least one rectangle in either mode',
+            polyHint: 'Click to add vertices; bring last point near the first to auto-close; Backspace removes last point; Esc cancels current polygon; Undo removes last finished polygon.'
         }
     }
 }
