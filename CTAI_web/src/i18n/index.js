@@ -45,7 +45,9 @@ export const messages = {
             action: '操作',
             undo: '撤销',
             clear: '清空',
-            undoPoint: '撤销点'
+            undoPoint: '撤销点',
+            manualMiddleMask: "手动标注 腰大肌、全肌肉",
+
         },
         form: {
             patientName: '病人姓名',
@@ -150,7 +152,9 @@ export const messages = {
             action: 'Action',
             undo: 'Undo',
             clear: 'Clear',
-            undoPoint: 'Undo Point'
+            undoPoint: 'Undo Point',
+            manualMiddleMask: "Manual Middle Mask",
+
         },
         form: {
             patientName: 'Patient Name',

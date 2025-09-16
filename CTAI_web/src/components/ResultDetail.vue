@@ -99,8 +99,9 @@
           size="mini"
           @click="openMiddleEditor"
           style="margin-top: 14px"
-          >Manual Middle Mask</el-button
         >
+          {{ $t("actions.manualMiddleMask") }}
+        </el-button>
       </div>
     </section>
 
